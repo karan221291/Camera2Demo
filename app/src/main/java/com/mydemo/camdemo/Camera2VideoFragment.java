@@ -1,6 +1,7 @@
 package com.mydemo.camdemo;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
@@ -20,6 +21,7 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.MediaRecorder;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
@@ -34,11 +36,13 @@ import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import java.io.File;
@@ -85,6 +89,11 @@ public class Camera2VideoFragment extends Fragment
         INVERSE_ORIENTATIONS.append(Surface.ROTATION_180, 90);
         INVERSE_ORIENTATIONS.append(Surface.ROTATION_270, 0);
     }
+
+    /**
+     * Progressbar to show progress
+     */
+    private ProgressBar mProgress;
 
     /**
      * An {@link AutoFitTextureView} for camera preview.
@@ -269,15 +278,36 @@ public class Camera2VideoFragment extends Fragment
         return inflater.inflate(R.layout.frag_cam, container, false);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
         mTextureView = view.findViewById(R.id.texture);
         mButtonVideo = view.findViewById(R.id.video);
         mButtonSwitch = view.findViewById(R.id.btnswitch);
+        mProgress = view.findViewById(R.id.prg_main);
 
-        mButtonVideo.setOnClickListener(this);
+        //mButtonVideo.setOnClickListener(this);
         mButtonSwitch.setOnClickListener(this);
         view.findViewById(R.id.info).setOnClickListener(this);
+
+        mButtonVideo.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    startRecordingVideo();
+                    mCountDownTimer.start();
+                    return true;
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    if (mIsRecordingVideo) {
+                        stopRecordingVideo();
+                        mCountDownTimer.cancel();
+                        mProgress.setProgress(0);
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
     }
 
     @Override
@@ -301,14 +331,13 @@ public class Camera2VideoFragment extends Fragment
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
-            case R.id.video: {
+            /*case R.id.video:
                 if (mIsRecordingVideo) {
                     stopRecordingVideo();
                 } else {
                     startRecordingVideo();
                 }
-                break;
-            }
+                break;*/
 
             case R.id.info: {
                 Activity activity = getActivity();
@@ -680,7 +709,6 @@ public class Camera2VideoFragment extends Fragment
                             //TODO -  set icon
                             //mButtonVideo.setText(R.string.stop);
                             mIsRecordingVideo = true;
-
                             // Start recording
                             mMediaRecorder.start();
                         }
@@ -713,6 +741,13 @@ public class Camera2VideoFragment extends Fragment
         mIsRecordingVideo = false;
         //TODO - set icon
         //mButtonVideo.setText(R.string.record);
+        try {
+            mPreviewSession.stopRepeating();
+            mPreviewSession.abortCaptures();
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+
         // Stop recording
         mMediaRecorder.stop();
         mMediaRecorder.reset();
@@ -794,4 +829,16 @@ public class Camera2VideoFragment extends Fragment
 
     }
 
+    CountDownTimer mCountDownTimer = new CountDownTimer(10000, 1000) {
+        @Override
+        public void onTick(long l) {
+            mProgress.setProgress((int)l/1000);
+        }
+
+        @Override
+        public void onFinish() {
+            stopRecordingVideo();
+            mProgress.setProgress(0);
+        }
+    };
 }
