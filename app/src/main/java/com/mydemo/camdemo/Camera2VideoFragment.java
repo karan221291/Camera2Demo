@@ -286,7 +286,6 @@ public class Camera2VideoFragment extends Fragment
         mButtonSwitch = view.findViewById(R.id.btnswitch);
         mProgress = view.findViewById(R.id.prg_main);
 
-        //mButtonVideo.setOnClickListener(this);
         mButtonSwitch.setOnClickListener(this);
         view.findViewById(R.id.info).setOnClickListener(this);
 
@@ -294,12 +293,17 @@ public class Camera2VideoFragment extends Fragment
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                    startRecordingVideo();
-                    mCountDownTimer.start();
+                    if (!mIsRecordingVideo) {
+                        startRecordingVideo();
+                        mCountDownTimer.start();
+                    }
                     return true;
                 } else if (event.getAction() == MotionEvent.ACTION_UP) {
                     if (mIsRecordingVideo) {
                         stopRecordingVideo();
+                        mCountDownTimer.cancel();
+                        mProgress.setProgress(0);
+                    } else {
                         mCountDownTimer.cancel();
                         mProgress.setProgress(0);
                     }
@@ -331,14 +335,6 @@ public class Camera2VideoFragment extends Fragment
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
-            /*case R.id.video:
-                if (mIsRecordingVideo) {
-                    stopRecordingVideo();
-                } else {
-                    startRecordingVideo();
-                }
-                break;*/
-
             case R.id.info: {
                 Activity activity = getActivity();
                 if (null != activity) {
